@@ -89,7 +89,7 @@ const memoryStore = {
           {
             carat: '24K',
             nepaliName: 'Fine Gold (Chhapawal 24K)',
-            purity: '99.9% Fine Bullion',
+            purity: '99.9% (Chhapawal Fine)',
             referenceMarketRatePerGram: final24kRefGram,
             referenceMarketRatePerTola: Math.round(final24kRefGram * tolaGrams),
             buyRatePerGram: final24kBuyGram,
@@ -639,7 +639,7 @@ Silver is graded by parts per thousand of pure elemental silver:
     logoUrl: '/logo.jpg',
     defaultCurrency: 'NPR',
     paymentMethods: 'Bank Transfer & Account Payee Cheque (No cash payments)',
-    marqueeNotice: '⚡ Nepal Bullion Benchmark: 24K Chhapawal @ Rs. 1,71,458/tola | 22K Tejabi @ Rs. 1,63,876/tola | Silver 999 @ Rs. 2,216/tola • German XRF Purity Testing & Highest Buyback Rates in Nepal!',
+    marqueeNotice: '⚡ Nepal Market Benchmark: 24K Chhapawal @ Rs. 1,71,458/tola | 22K Tejabi @ Rs. 1,63,876/tola | Silver 999 @ Rs. 2,216/tola • German XRF Purity Testing & Highest Buyback Rates in Nepal!',
     disclaimer: 'Published reference market prices adhere strictly to prevailing Federation of Nepal Gold and Silver Dealers Association (FENEGOSIDA) benchmarks. Kubera buyback rates are determined via calibrated German XRF testing and direct bank transfer disbursement.'
   }
 };
