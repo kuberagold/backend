@@ -114,14 +114,31 @@ const createBlog = async (req, res, next) => {
   }
 };
 
+const BLOG_EDITABLE = ['title', 'excerpt', 'content', 'coverImage', 'category', 'author', 'status', 'tags'];
+
+const pickBlogChanges = (body = {}) => {
+  const out = {};
+  BLOG_EDITABLE.forEach((k) => {
+    if (body[k] === undefined) return;
+    out[k] = k === 'tags'
+      ? (Array.isArray(body.tags) ? body.tags : String(body.tags).split(',')).map((t) => String(t).trim()).filter(Boolean)
+      : body[k];
+  });
+  return out;
+};
+
 const updateBlog = async (req, res, next) => {
   try {
+    const changes = pickBlogChanges(req.body);
     if (mongoose.connection.readyState === 1) {
-      const updated = await Blog.findByIdAndUpdate(req.params.id, req.body, { new: true });
+      const updated = await Blog.findByIdAndUpdate(req.params.id, changes, { new: true, runValidators: true });
+      if (!updated) return errorResponse(res, { statusCode: 404, message: 'Blog not found' });
       return successResponse(res, { message: 'Blog updated successfully', data: updated });
     } else {
       const blog = memoryStore.blogs.find(b => b._id === req.params.id);
-      if (blog) Object.assign(blog, req.body);
+      if (!blog) return errorResponse(res, { statusCode: 404, message: 'Blog not found' });
+      Object.assign(blog, changes);
+      if (changes.status === 'published' && !blog.publishedAt) blog.publishedAt = new Date();
       return successResponse(res, { message: 'Blog updated successfully', data: blog });
     }
   } catch (error) {

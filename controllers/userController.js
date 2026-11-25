@@ -1,21 +1,37 @@
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const memoryStore = require('../utils/memoryStore');
+const { ROLES } = require('../config/roles');
 const { successResponse, errorResponse } = require('../utils/apiResponse');
+
+const isDb = () => mongoose.connection.readyState === 1;
+const VALID_ROLES = Object.values(ROLES);
+
+const safeUser = (u) => {
+  if (!u) return u;
+  const obj = typeof u.toObject === 'function' ? u.toObject() : { ...u };
+  delete obj.password;
+  delete obj.passwordHash;
+  return obj;
+};
+
+const isSelf = (req) => String(req.user._id) === String(req.params.id);
+
+const findUser = async (id) => {
+  if (isDb()) return mongoose.isValidObjectId(id) ? User.findById(id) : null;
+  return memoryStore.users.find((u) => u._id === id) || null;
+};
 
 const getAllUsers = async (req, res, next) => {
   try {
-    if (mongoose.connection.readyState === 1) {
-      const filter = {};
-      if (req.query.role) filter.role = req.query.role;
-      const users = await User.find(filter).select('-password').sort({ createdAt: -1 });
-      return successResponse(res, { message: 'Users retrieved', data: users });
+    const role = VALID_ROLES.includes(req.query.role) ? req.query.role : '';
+    let users;
+    if (isDb()) {
+      users = await User.find(role ? { role } : {}).select('-password').sort({ createdAt: -1 });
     } else {
-      let users = [...memoryStore.users];
-      if (req.query.role) users = users.filter(u => u.role === req.query.role);
-      const safeUsers = users.map(({ passwordHash, ...rest }) => rest);
-      return successResponse(res, { message: 'Users retrieved', data: safeUsers });
+      users = memoryStore.users.filter((u) => !role || u.role === role);
     }
+    return successResponse(res, { message: 'Users retrieved', data: users.map(safeUser) });
   } catch (error) {
     next(error);
   }
@@ -24,18 +40,18 @@ const getAllUsers = async (req, res, next) => {
 const updateUserRole = async (req, res, next) => {
   try {
     const { role } = req.body;
-    if (mongoose.connection.readyState === 1) {
-      const user = await User.findById(req.params.id);
-      if (!user) return errorResponse(res, { statusCode: 404, message: 'User not found' });
-      user.role = role;
-      await user.save();
-      return successResponse(res, { message: `User role updated to ${role}`, data: user });
-    } else {
-      const user = memoryStore.users.find(u => u._id === req.params.id);
-      if (!user) return errorResponse(res, { statusCode: 404, message: 'User not found' });
-      user.role = role;
-      return successResponse(res, { message: `User role updated to ${role}`, data: user });
+    if (!VALID_ROLES.includes(role)) {
+      return errorResponse(res, { statusCode: 400, message: `Role must be one of: ${VALID_ROLES.join(', ')}` });
     }
+    // A superadmin demoting themselves could leave nobody able to manage users
+    if (isSelf(req) && role !== ROLES.SUPERADMIN) {
+      return errorResponse(res, { statusCode: 400, message: 'You cannot change your own role.' });
+    }
+    const user = await findUser(req.params.id);
+    if (!user) return errorResponse(res, { statusCode: 404, message: 'User not found' });
+    user.role = role;
+    if (isDb()) await user.save();
+    return successResponse(res, { message: `User role updated to ${role}`, data: safeUser(user) });
   } catch (error) {
     next(error);
   }
@@ -43,18 +59,14 @@ const updateUserRole = async (req, res, next) => {
 
 const toggleUserStatus = async (req, res, next) => {
   try {
-    if (mongoose.connection.readyState === 1) {
-      const user = await User.findById(req.params.id);
-      if (!user) return errorResponse(res, { statusCode: 404, message: 'User not found' });
-      user.isActive = !user.isActive;
-      await user.save();
-      return successResponse(res, { message: `Status updated`, data: user });
-    } else {
-      const user = memoryStore.users.find(u => u._id === req.params.id);
-      if (!user) return errorResponse(res, { statusCode: 404, message: 'User not found' });
-      user.isActive = !user.isActive;
-      return successResponse(res, { message: `Status updated`, data: user });
+    if (isSelf(req)) {
+      return errorResponse(res, { statusCode: 400, message: 'You cannot deactivate your own account.' });
     }
+    const user = await findUser(req.params.id);
+    if (!user) return errorResponse(res, { statusCode: 404, message: 'User not found' });
+    user.isActive = !user.isActive;
+    if (isDb()) await user.save();
+    return successResponse(res, { message: 'Status updated', data: safeUser(user) });
   } catch (error) {
     next(error);
   }
@@ -62,10 +74,15 @@ const toggleUserStatus = async (req, res, next) => {
 
 const deleteUser = async (req, res, next) => {
   try {
-    if (mongoose.connection.readyState === 1) {
+    if (isSelf(req)) {
+      return errorResponse(res, { statusCode: 400, message: 'You cannot delete your own account.' });
+    }
+    const user = await findUser(req.params.id);
+    if (!user) return errorResponse(res, { statusCode: 404, message: 'User not found' });
+    if (isDb()) {
       await User.findByIdAndDelete(req.params.id);
     } else {
-      memoryStore.users = memoryStore.users.filter(u => u._id !== req.params.id);
+      memoryStore.users = memoryStore.users.filter((u) => u._id !== req.params.id);
     }
     return successResponse(res, { message: 'User deleted' });
   } catch (error) {

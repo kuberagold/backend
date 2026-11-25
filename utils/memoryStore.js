@@ -198,7 +198,10 @@ const memoryStore = {
       hours: 'Sunday – Friday: 10:00 AM – 6:30 PM (Saturday Closed)',
       services: ['Gold Buyback', 'Silver Buyback', 'German XRF Purity Testing', 'Bank Transfer Disbursement', 'Valuation Certificates'],
       mapUrl: 'https://maps.google.com/?q=Dharmapath+New+Road+Kathmandu',
-      image: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=800&q=80'
+      image: '',
+      isHeadOffice: true,
+      isActive: true,
+      displayOrder: 1
     },
     {
       id: 'lalitpur-kumaripati',
@@ -212,7 +215,10 @@ const memoryStore = {
       hours: 'Sunday – Friday: 10:00 AM – 6:00 PM (Saturday Closed)',
       services: ['Gold Buyback', 'Silver Buyback', 'German XRF Purity Testing', 'Instant Bank Payout'],
       mapUrl: 'https://maps.google.com/?q=Kumaripati+Lalitpur+Nepal',
-      image: 'https://images.unsplash.com/photo-1610375461246-83df859d849d?auto=format&fit=crop&w=800&q=80'
+      image: '',
+      isHeadOffice: false,
+      isActive: true,
+      displayOrder: 2
     },
     {
       id: 'pokhara-chipledhunga',
@@ -226,7 +232,10 @@ const memoryStore = {
       hours: 'Sunday – Friday: 10:00 AM – 5:30 PM (Saturday Closed)',
       services: ['Gold Buyback', 'Silver Buyback', 'XRF Spectrometer Analysis', 'Bank Transfer Disbursement'],
       mapUrl: 'https://maps.google.com/?q=Chipledhunga+Pokhara+Nepal',
-      image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=800&q=80'
+      image: '',
+      isHeadOffice: false,
+      isActive: true,
+      displayOrder: 3
     }
   ],
 
@@ -632,14 +641,19 @@ Silver is graded by parts per thousand of pure elemental silver:
     officialSlogan: 'EXACT PURITY. MAXIMUM VALUE.',
     brandPositioning: 'HIGHEST GOLD & SILVER BUYBACK PRICES IN NEPAL',
     tagLine: 'German XRF Technology | Transparent Valuation | Fast Process | Secure Payments',
+    aboutShort: "Nepal's destination for old gold and silver exchange, with computerised German XRF purity testing and payment by bank transfer or account-payee cheque.",
     contactEmail: 'info@kuberagoldnepal.com',
-    contactPhone: '+977 1 4256789 / 98510 12345',
+    contactPhone: '+977 1 4256789',
+    contactMobile: '+977 98510 12345',
     whatsapp: '+9779851012345',
     address: 'Dharmapath, New Road (Opposite Bishal Bazaar), Kathmandu, Nepal',
-    logoUrl: '/logo.jpg',
+    businessHours: 'Sunday – Friday: 10:00 AM – 6:30 PM (Saturday Closed)',
+    logoUrl: '/logo-transparent.png',
+    socialLinks: { facebook: '', instagram: '', tiktok: '', youtube: '' },
     defaultCurrency: 'NPR',
     paymentMethods: 'Bank Transfer & Account Payee Cheque (No cash payments)',
-    marqueeNotice: '⚡ Nepal Market Benchmark: 24K Chhapawal @ Rs. 1,71,458/tola | 22K Tejabi @ Rs. 1,63,876/tola | Silver 999 @ Rs. 2,216/tola • German XRF Purity Testing & Highest Buyback Rates in Nepal!',
+    exchangeCommissionPercentage: 1.5,
+    marqueeNotice: 'Live gold & silver rates updated daily. German XRF purity testing at every branch.',
     disclaimer: 'Published reference market prices adhere strictly to prevailing Federation of Nepal Gold and Silver Dealers Association (FENEGOSIDA) benchmarks. Kubera buyback rates are determined via calibrated German XRF testing and direct bank transfer disbursement.'
   }
 };

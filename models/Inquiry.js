@@ -82,5 +82,8 @@ const inquirySchema = new mongoose.Schema(
 );
 
 inquirySchema.index({ status: 1, createdAt: -1 });
+inquirySchema.index({ appointmentDate: 1, branch: 1, appointmentTimeSlot: 1 });
+inquirySchema.index({ appointmentDate: 1, phone: 1 });
+inquirySchema.index({ appointmentDate: 1, email: 1 });
 
 module.exports = mongoose.model('Inquiry', inquirySchema);

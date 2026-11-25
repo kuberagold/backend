@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const User = require('../models/User');
 const memoryStore = require('../utils/memoryStore');
 const { errorResponse } = require('../utils/apiResponse');
+const { getJwtSecret } = require('./security');
 
 const authenticateToken = async (req, res, next) => {
   let token;
@@ -19,13 +20,20 @@ const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'kuberagold_super_secret_jwt_key_2026_change_in_production');
-    
+    const decoded = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] });
+    if (!decoded || typeof decoded.id !== 'string') throw new Error('Malformed token');
+
     let user;
     if (mongoose.connection.readyState === 1) {
+      if (!mongoose.isValidObjectId(decoded.id)) throw new Error('Malformed token');
       user = await User.findById(decoded.id).select('-password');
     } else {
-      user = memoryStore.users.find(u => u._id.toString() === decoded.id.toString());
+      const found = memoryStore.users.find(u => u._id.toString() === decoded.id);
+      // Never expose the password hash further down the request
+      if (found) {
+        const { passwordHash, ...safe } = found;
+        user = safe;
+      }
     }
 
     if (!user) {
@@ -47,8 +55,7 @@ const authenticateToken = async (req, res, next) => {
   } catch (error) {
     return errorResponse(res, {
       statusCode: 401,
-      message: 'Invalid or expired authentication token.',
-      errors: error.message
+      message: 'Invalid or expired authentication token.'
     });
   }
 };

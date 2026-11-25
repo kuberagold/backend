@@ -1,52 +1,39 @@
 const mongoose = require('mongoose');
 
+// One document holds the site-wide settings managed from SuperAdmin > System Settings.
+// Defaults are only the first-run values; everything here is editable in the admin panel.
 const settingSchema = new mongoose.Schema(
   {
-    siteName: {
+    siteName: { type: String, default: 'Kubera Gold Exchange' },
+    officialSlogan: { type: String, default: 'EXACT PURITY. MAXIMUM VALUE.' },
+    tagLine: { type: String, default: 'German XRF Technology | Transparent Valuation | Fast Process | Secure Payments' },
+    aboutShort: {
       type: String,
-      default: 'KuberaGold Exchange'
+      default: "Nepal's destination for old gold and silver exchange, with computerised German XRF purity testing and payment by bank transfer or account-payee cheque."
     },
-    tagLine: {
-      type: String,
-      default: 'Trusted Gold Buying, Selling & Instant Exchange'
-    },
-    contactEmail: {
-      type: String,
-      default: 'support@kuberagold.com'
-    },
-    contactPhone: {
-      type: String,
-      default: '+91 98765 43210'
-    },
-    address: {
-      type: String,
-      default: 'Gold Souk Arcade, Jewelry Street, Mumbai, India'
-    },
-    logoUrl: {
-      type: String,
-      default: '/logo.png'
-    },
+    contactEmail: { type: String, default: 'info@kuberagoldnepal.com' },
+    contactPhone: { type: String, default: '+977 1 4256789' },
+    contactMobile: { type: String, default: '+977 98510 12345' },
+    whatsapp: { type: String, default: '+9779851012345' },
+    address: { type: String, default: 'Dharmapath, New Road (Opposite Bishal Bazaar), Kathmandu, Nepal' },
+    businessHours: { type: String, default: 'Sunday – Friday: 10:00 AM – 6:30 PM (Saturday Closed)' },
+    logoUrl: { type: String, default: '/logo-transparent.png' },
     socialLinks: {
-      facebook: { type: String, default: 'https://facebook.com' },
-      instagram: { type: String, default: 'https://instagram.com' },
-      twitter: { type: String, default: 'https://twitter.com' },
-      whatsapp: { type: String, default: 'https://wa.me/919876543210' }
+      facebook: { type: String, default: '' },
+      instagram: { type: String, default: '' },
+      tiktok: { type: String, default: '' },
+      youtube: { type: String, default: '' }
     },
-    defaultCurrency: {
-      type: String,
-      default: 'INR'
-    },
-    exchangeCommissionPercentage: {
-      type: Number,
-      default: 1.5
-    },
+    defaultCurrency: { type: String, default: 'NPR' },
+    paymentMethods: { type: String, default: 'Bank Transfer & Account Payee Cheque (No cash payments)' },
+    exchangeCommissionPercentage: { type: Number, default: 1.5, min: 0, max: 100 },
     marqueeNotice: {
       type: String,
-      default: '⚡ Live Gold & Silver Rates Updated Daily. Visit our store or book online consultation for instant cash on gold!'
+      default: 'Live gold & silver rates updated daily. German XRF purity testing at every branch.'
     },
     disclaimer: {
       type: String,
-      default: 'Gold rates are subject to real-time market fluctuations and local statutory taxes/making charges.'
+      default: 'Published reference market prices follow Federation of Nepal Gold and Silver Dealers Association (FENEGOSIDA) benchmarks. Kubera buyback rates are set by calibrated German XRF testing, with payment by bank transfer.'
     }
   },
   {

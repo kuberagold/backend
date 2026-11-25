@@ -8,6 +8,7 @@ const blogRoutes = require('./blogRoutes');
 const inquiryRoutes = require('./inquiryRoutes');
 const userRoutes = require('./userRoutes');
 const settingRoutes = require('./settingRoutes');
+const branchRoutes = require('./branchRoutes');
 
 // Mount routes
 router.use('/auth', authRoutes);
@@ -17,5 +18,6 @@ router.use('/blogs', blogRoutes);
 router.use('/inquiries', inquiryRoutes);
 router.use('/users', userRoutes);
 router.use('/settings', settingRoutes);
+router.use('/branches', branchRoutes);
 
 module.exports = router;

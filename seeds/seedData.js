@@ -1,4 +1,9 @@
 require('dotenv').config();
+// Safety: this script DELETES existing data and creates demo accounts with published passwords.
+if (process.env.NODE_ENV === 'production' && !process.argv.includes('--i-understand-this-wipes-data')) {
+  console.error('Refusing to seed: NODE_ENV is production. This would wipe live data and create demo admin accounts.');
+  process.exit(1);
+}
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const GoldRate = require('../models/GoldRate');

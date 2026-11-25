@@ -33,6 +33,24 @@ const errorHandler = (err, req, res, next) => {
     message = 'Token has expired. Please login again.';
   }
 
+  // Malformed JSON body or oversize request: client error, not a crash
+  if (err.type === 'entity.parse.failed') {
+    statusCode = 400;
+    message = 'Malformed JSON in request body.';
+  } else if (err.type === 'entity.too.large') {
+    statusCode = 413;
+    message = 'Request body is too large.';
+  } else if (err.name === 'CastError') {
+    statusCode = 400;
+    message = 'Invalid identifier or value.';
+  }
+
+  // Never reveal internal error details (stack traces, driver messages) for server errors
+  if (statusCode >= 500) {
+    message = 'Something went wrong on our side. Please try again.';
+    errors = null;
+  }
+
   return errorResponse(res, {
     statusCode,
     message,

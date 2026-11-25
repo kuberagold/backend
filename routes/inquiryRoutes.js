@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
+  getAvailableSlots,
   submitInquiry,
   getAllInquiries,
   updateInquiryStatus,
@@ -10,7 +11,10 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleMiddleware');
 const { ROLES } = require('../config/roles');
 
-// Public inquiry submission (Guests)
+// Public available appointment slots (Guests & Customers)
+router.get('/available-slots', getAvailableSlots);
+
+// Public inquiry & valuation appointment submission (Guests)
 router.post('/', submitInquiry);
 
 // Protected inquiry management

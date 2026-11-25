@@ -3,6 +3,7 @@ const GoldRate = require('../models/GoldRate');
 const memoryStore = require('../utils/memoryStore');
 const { CONVERSIONS } = require('../config/constants');
 const { successResponse, errorResponse } = require('../utils/apiResponse');
+const { loadSettings } = require('./settingController');
 
 const getLatestRates = async (req, res, next) => {
   try {
@@ -33,12 +34,14 @@ const getLatestRates = async (req, res, next) => {
 
 const getRateHistory = async (req, res, next) => {
   try {
-    const period = req.query.period || '30d'; // '7d' | '30d' | '1m' | '1y'
+    const period = req.query.period || '30d'; // '7d' | '30d' | '1m' | '3m' | '6m' | '1y'
     const carat = req.query.carat || '24K';
-    
+
     let days = 30;
     if (period === '7d') days = 7;
     else if (period === '1m' || period === '30d') days = 30;
+    else if (period === '3m' || period === '90d') days = 90;
+    else if (period === '6m' || period === '180d') days = 180;
     else if (period === '1y' || period === '365d') days = 365;
     else if (req.query.limit) days = parseInt(req.query.limit, 10);
 
@@ -52,17 +55,8 @@ const getRateHistory = async (req, res, next) => {
       rawList = memoryStore.goldRates.slice(-days);
     }
 
-    // If 1 Year, sample down to ~52 weekly points plus latest so chart renders smoothly and quickly
-    let sampledList = rawList;
-    if (days > 60) {
-      const step = Math.ceil(rawList.length / 52);
-      const filtered = [];
-      for (let i = 0; i < rawList.length - 1; i += step) {
-        filtered.push(rawList[i]);
-      }
-      filtered.push(rawList[rawList.length - 1]); // Always include the latest day
-      sampledList = filtered;
-    }
+    // Keep every daily point: the chart zooms down to individual days (a year is ~366 small rows)
+    const sampledList = rawList;
 
     const tolaMultiplier = CONVERSIONS.tolaToGrams; // 11.6638
 
@@ -73,18 +67,21 @@ const getRateHistory = async (req, res, next) => {
       let buyTola = 0;
       let refTola = 0;
 
+      // Only real published figures: a day without this metal's rate is dropped (filtered below),
+      // and a missing market reference falls back to the buying rate, not an invented number.
       if (carat === 'Silver') {
-        buyGram = item.silverRatePerGram || 186;
-        refGram = item.silverReferenceMarketRatePerGram || 190;
+        buyGram = item.silverRatePerGram || 0;
+        refGram = item.silverReferenceMarketRatePerGram || buyGram;
         buyTola = item.silverRatePerTola || Math.round(buyGram * tolaMultiplier);
         refTola = item.silverReferenceMarketRatePerTola || Math.round(refGram * tolaMultiplier);
       } else {
-        const caratData = item.rates?.find(r => r.carat === carat) || item.rates?.[0] || {};
+        const caratData = item.rates?.find(r => r.carat === carat) || {};
         buyGram = caratData.buyRatePerGram || 0;
-        refGram = caratData.referenceMarketRatePerGram || (buyGram + 200);
+        refGram = caratData.referenceMarketRatePerGram || buyGram;
         buyTola = caratData.buyRatePerTola || Math.round(buyGram * tolaMultiplier);
         refTola = caratData.referenceMarketRatePerTola || Math.round(refGram * tolaMultiplier);
       }
+      if (!buyGram && !buyTola) return null;
 
       return {
         id: item._id,
@@ -106,7 +103,7 @@ const getRateHistory = async (req, res, next) => {
         changePercentage: item.changePercentage,
         changeValue: item.changeValue
       };
-    });
+    }).filter(Boolean);
 
     // Calculate Summary Stats
     const prices = chartData.map(c => c.buyRatePerTola);
@@ -305,8 +302,12 @@ const calculateExchangeValue = async (req, res, next) => {
 
     if (metal === 'silver') {
       purityRatio = purityPercent ? Number(purityPercent) / 100 : (carat === '925' ? 0.925 : 0.999);
-      referenceRatePerGram = latestRate.silverReferenceMarketRatePerGram || 190;
-      ratePerGram = customRate ? Number(customRate) : (latestRate.silverRatePerGram || 186);
+      // Never price from a made-up rate: refuse if today's silver rate isn't published
+      if (!latestRate.silverRatePerGram && !customRate) {
+        return errorResponse(res, { statusCode: 404, message: "Today's silver rate has not been published yet. Please try later." });
+      }
+      ratePerGram = customRate ? Number(customRate) : latestRate.silverRatePerGram;
+      referenceRatePerGram = latestRate.silverReferenceMarketRatePerGram || ratePerGram;
     } else {
       // Gold
       if (purityPercent) {
@@ -326,7 +327,11 @@ const calculateExchangeValue = async (req, res, next) => {
     const fineMetalGrams = totalGrams * purityRatio;
     const referenceMetalValue = fineMetalGrams * (metal === 'silver' ? referenceRatePerGram : referenceRatePerGram);
     const baseAmount = fineMetalGrams * ratePerGram;
-    const appliedMargin = Number(marginPercent) || 1.5;
+    // Commission comes from SuperAdmin > System Settings unless the caller passes one
+    const settings = await loadSettings();
+    const appliedMargin = marginPercent !== undefined && marginPercent !== ''
+      ? Number(marginPercent) || 0
+      : Number(settings?.exchangeCommissionPercentage) || 0;
     const estimatedDeductions = type === 'sell' ? (baseAmount * (appliedMargin / 100)) : 0;
     const estimatedBuyingValue = baseAmount - estimatedDeductions;
 
