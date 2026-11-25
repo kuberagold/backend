@@ -98,8 +98,10 @@ const getJwtSecret = () => {
 
 const assertSafeConfig = () => {
   getJwtSecret();
-  if (isProd() && (!process.env.CLIENT_URL || process.env.CLIENT_URL.includes('*'))) {
-    throw new Error('CLIENT_URL must list the website origin(s) in production (no "*").');
+  // A bare "*" (any website) is refused; "https://name-*.vercel.app" style patterns are fine
+  const origins = (process.env.CLIENT_URL || '').split(',').map((o) => o.trim()).filter(Boolean);
+  if (isProd() && (!origins.length || origins.some((o) => !/^https?:\/\/[^*]*[a-z0-9]/i.test(o) || o === '*' || /^https?:\/\/\*/.test(o)))) {
+    throw new Error('CLIENT_URL must list the website origin(s) in production, e.g. https://kuberagold.com (no bare "*").');
   }
 };
 

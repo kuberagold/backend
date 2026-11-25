@@ -22,26 +22,35 @@ mongoose.set('sanitizeFilter', true);
 
 const app = express();
 
-// Behind a reverse proxy (nginx, Render, etc.) set TRUST_PROXY=1 so rate limits see real client IPs
+// Behind a reverse proxy, rate limits must read the real client IP from X-Forwarded-For.
+// Vercel always sits in front (one hop); elsewhere set TRUST_PROXY=1 (nginx, Render, etc.).
 if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY) || process.env.TRUST_PROXY);
+else if (process.env.VERCEL) app.set('trust proxy', 1);
 
 // Plain query parsing: ?a[b]=c stays a string key instead of becoming a nested object
 app.set('query parser', 'simple');
 
-// Database Connection (retries in the background until it connects)
-connectDB();
+// Database Connection (starts now; retries in the background on a normal server)
+connectDB().catch(() => {});
 
 // Core Middleware
 app.use(securityHeaders);
 
+// CLIENT_URL: comma-separated origins. A "*" may stand for one DNS label, e.g.
+// https://kuberagold-frontend-*.vercel.app to allow Vercel preview deployments.
 const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
   .split(',')
-  .map((o) => o.trim())
-  .filter(Boolean);
+  .map((o) => o.trim().replace(/\/$/, ''))
+  .filter(Boolean)
+  .map((o) => (o.includes('*')
+    ? new RegExp(`^${o.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[a-z0-9-]+')}$`, 'i')
+    : o));
+const originAllowed = (origin) => allowedOrigins.some((o) => (o instanceof RegExp ? o.test(origin) : o === origin));
+
 app.use(cors({
   origin: (origin, cb) => {
     // Same-origin and server-to-server requests have no Origin header
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    if (!origin || originAllowed(origin)) return cb(null, true);
     return cb(null, false);
   },
   credentials: true,
@@ -71,7 +80,8 @@ app.use('/api/auth/register', limiters.register);
 app.post('/api/inquiries', limiters.inquiry);
 app.use('/api/gold-rates/calculate', limiters.calculator);
 
-// Production never serves from the in-memory demo store
+// Wait for MongoDB on cold starts, then refuse to serve from the in-memory demo store in production
+app.use('/api', connectDB.ensureDatabase);
 app.use('/api', requireDatabaseInProduction);
 
 // Mount Main API Routes
@@ -88,13 +98,16 @@ app.use('*', (req, res) => {
 // Global Error Handler
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log('===============================================');
-  console.log(`KuberaGold Backend running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log('===============================================');
-});
+// Start a server only when run directly (npm start / npm run dev).
+// On Vercel, api/index.js imports the app and Vercel handles the HTTP side.
+if (require.main === module && !process.env.VERCEL) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log('===============================================');
+    console.log(`KuberaGold Backend running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log('===============================================');
+  });
+}
 
 module.exports = app;
