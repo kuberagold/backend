@@ -47,6 +47,9 @@ The seed script wipes existing data and refuses to run with `NODE_ENV=production
 
 ## Notes
 
+- **Popup notice files** (images, PDF) are stored in MongoDB (GridFS), because Vercel has no permanent disk.
+  Uploads are limited to 4 MB each (Vercel accepts at most 4.5 MB per request).
+- **Times** (appointment dates, rate dates, notice expiry) use Nepal time whatever region Vercel runs in.
 - **Rate limits** are counted per serverless instance, so on Vercel they are a first line of defence, not a hard limit.
   For strict limits, connect a shared store such as Upstash Redis to `express-rate-limit`.
 - **Security tests:** `npm run security:check` runs 50 API checks against a local development backend.

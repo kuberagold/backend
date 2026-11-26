@@ -64,8 +64,9 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
 
-// Health Check API (reports database state, nothing sensitive)
-app.get('/api/health', (req, res) => {
+// Health Check API (reports database state, nothing sensitive).
+// Waits for the first connection so a cold start doesn't report "disconnected".
+app.get('/api/health', connectDB.ensureDatabase, (req, res) => {
   res.status(200).json({
     status: 'online',
     database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
