@@ -14,13 +14,34 @@ const {
   assertSafeConfig,
 } = require('./middleware/security');
 
-// Refuse to start in production with an unsafe configuration (weak JWT secret, open CORS)
-assertSafeConfig();
+// Refuse to serve in production with an unsafe configuration (weak JWT secret, open CORS).
+// On a normal server this stops startup; on Vercel every request answers with the reason
+// (names of settings only, never their values) instead of an unexplained crash.
+let configError = null;
+try {
+  assertSafeConfig();
+  if (process.env.NODE_ENV === 'production' && !process.env.MONGO_URI) {
+    throw new Error('MONGO_URI is not set. Add the MongoDB Atlas connection string in the environment variables.');
+  }
+} catch (err) {
+  if (!process.env.VERCEL) throw err;
+  configError = err.message;
+  console.error(`[Config] ${configError}`);
+}
 
 // Treat user input in query filters as plain values, never as MongoDB operators
 mongoose.set('sanitizeFilter', true);
 
 const app = express();
+
+if (configError) {
+  app.use((req, res) => res.status(503).json({
+    success: false,
+    message: 'Server configuration incomplete',
+    fix: configError,
+    where: 'Vercel > this project > Settings > Environment Variables, then Redeploy',
+  }));
+}
 
 // Behind a reverse proxy, rate limits must read the real client IP from X-Forwarded-For.
 // Vercel always sits in front (one hop); elsewhere set TRUST_PROXY=1 (nginx, Render, etc.).
