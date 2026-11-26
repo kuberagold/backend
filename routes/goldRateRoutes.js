@@ -6,6 +6,7 @@ const {
   updateDailyRate,
   calculateExchangeValue
 } = require('../controllers/goldRateController');
+const { getInternationalHistory } = require('../controllers/intlGoldController');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleMiddleware');
 const { ROLES } = require('../config/roles');
@@ -13,6 +14,7 @@ const { ROLES } = require('../config/roles');
 // Public endpoints
 router.get('/latest', getLatestRates);
 router.get('/history', getRateHistory);
+router.get('/international', getInternationalHistory);
 router.post('/calculate', calculateExchangeValue);
 
 // Daily gold price update - restricted to Admin and SuperAdmin

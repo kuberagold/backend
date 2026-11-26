@@ -67,21 +67,24 @@ const getRateHistory = async (req, res, next) => {
       let buyTola = 0;
       let refTola = 0;
 
-      // Only real published figures: a day without this metal's rate is dropped (filtered below),
-      // and a missing market reference falls back to the buying rate, not an invented number.
+      // Only real published figures; a day without the metal's market rate is dropped (filtered below).
+      // Market reference = the FENEGOSIDA (federation) rate: the explicit reference field, else the
+      // published market (sell) rate. It never falls back to Kubera's own buying rate.
       if (carat === 'Silver') {
         buyGram = item.silverRatePerGram || 0;
-        refGram = item.silverReferenceMarketRatePerGram || buyGram;
+        refGram = item.silverReferenceMarketRatePerGram || 0;
         buyTola = item.silverRatePerTola || Math.round(buyGram * tolaMultiplier);
         refTola = item.silverReferenceMarketRatePerTola || Math.round(refGram * tolaMultiplier);
       } else {
         const caratData = item.rates?.find(r => r.carat === carat) || {};
         buyGram = caratData.buyRatePerGram || 0;
-        refGram = caratData.referenceMarketRatePerGram || buyGram;
+        refGram = caratData.referenceMarketRatePerGram || caratData.sellRatePerGram || 0;
         buyTola = caratData.buyRatePerTola || Math.round(buyGram * tolaMultiplier);
-        refTola = caratData.referenceMarketRatePerTola || Math.round(refGram * tolaMultiplier);
+        refTola = caratData.referenceMarketRatePerTola
+          || (caratData.referenceMarketRatePerGram ? 0 : caratData.sellRatePerTola)
+          || Math.round(refGram * tolaMultiplier);
       }
-      if (!buyGram && !buyTola) return null;
+      if (!refGram && !refTola) return null;
 
       return {
         id: item._id,
@@ -106,7 +109,7 @@ const getRateHistory = async (req, res, next) => {
     }).filter(Boolean);
 
     // Calculate Summary Stats
-    const prices = chartData.map(c => c.buyRatePerTola);
+    const prices = chartData.map(c => c.referenceRatePerTola);
     const currentPrice = prices[prices.length - 1] || 0;
     const initialPrice = prices[0] || currentPrice;
     const highPrice = Math.max(...prices, currentPrice);
