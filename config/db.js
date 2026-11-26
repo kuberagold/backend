@@ -17,7 +17,8 @@ const connectDB = () => {
   const mongoUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/kuberagold';
   connPromise = mongoose
     .connect(mongoUri, {
-      serverSelectionTimeoutMS: 5000,
+      // Cold starts on Vercel can need longer for the first Atlas handshake (function limit is 15 s)
+      serverSelectionTimeoutMS: isServerless() ? 10000 : 5000,
       maxPoolSize: isServerless() ? 5 : 10,
     })
     .then((conn) => {
