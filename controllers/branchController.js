@@ -46,7 +46,8 @@ const seedIfEmpty = async () => {
 // Only one branch can be the head office
 const clearOtherHeadOffices = async (keepId) => {
   if (isDb()) {
-    await Branch.updateMany({ _id: { $ne: keepId }, isHeadOffice: true }, { isHeadOffice: false });
+    // trusted(): the operator is built here, not taken from user input (see sanitizeFilter in server.js)
+    await Branch.updateMany({ _id: mongoose.trusted({ $ne: keepId }), isHeadOffice: true }, { isHeadOffice: false });
   } else {
     memoryStore.branches.forEach((b) => { if (b.id !== keepId) b.isHeadOffice = false; });
   }

@@ -60,7 +60,7 @@ const saveToDb = async (points) => {
 const loadFromDb = async () => {
   if (mongoose.connection.readyState !== 1) return [];
   const since = new Date(Date.now() - 366 * 864e5);
-  const rows = await IntlGoldPrice.find({ date: { $gte: since } }).sort({ date: 1 }).lean();
+  const rows = await IntlGoldPrice.find({ date: mongoose.trusted({ $gte: since }) }).sort({ date: 1 }).lean();
   return rows.map((r) => ({ day: r.day, date: r.date, usdPerOz: r.usdPerOz }));
 };
 

@@ -71,6 +71,17 @@ const inquirySchema = new mongoose.Schema(
       type: String,
       default: ''
     },
+    // Where the record came from: the public website form, or booked by staff (phone / walk-in)
+    source: {
+      type: String,
+      enum: ['website', 'admin'],
+      default: 'website'
+    },
+    // Staff member who last changed status, notes or schedule
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'

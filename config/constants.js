@@ -23,7 +23,9 @@ module.exports = {
   },
   DEFAULT_CURRENCY: 'NPR',
   INQUIRY_TYPES: ['exchange', 'sell', 'buy'],
-  INQUIRY_STATUSES: ['pending', 'contacted', 'completed', 'cancelled'],
+  // pending -> contacted / confirmed -> completed; or cancelled / no_show (appointment not attended)
+  INQUIRY_STATUSES: ['pending', 'contacted', 'confirmed', 'completed', 'cancelled', 'no_show'],
+  NEPAL_TIMEZONE: 'Asia/Kathmandu',
   BLOG_STATUSES: ['draft', 'published'],
   MAX_DAILY_APPOINTMENTS: 14,
   APPOINTMENT_TIME_SLOTS: [

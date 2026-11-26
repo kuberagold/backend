@@ -3,7 +3,9 @@ const router = express.Router();
 const {
   getAvailableSlots,
   submitInquiry,
+  createAppointmentByStaff,
   getAllInquiries,
+  getInquiryStats,
   updateInquiryStatus,
   deleteInquiry
 } = require('../controllers/inquiryController');
@@ -11,15 +13,17 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleMiddleware');
 const { ROLES } = require('../config/roles');
 
-// Public available appointment slots (Guests & Customers)
-router.get('/available-slots', getAvailableSlots);
+const staff = [authenticateToken, authorize(ROLES.ADMIN, ROLES.SUPERADMIN)];
 
-// Public inquiry & valuation appointment submission (Guests)
+// Public: free appointment slots, and the enquiry / booking form
+router.get('/available-slots', getAvailableSlots);
 router.post('/', submitInquiry);
 
-// Protected inquiry management
-router.get('/', authenticateToken, authorize(ROLES.ADMIN, ROLES.SUPERADMIN), getAllInquiries);
-router.put('/:id', authenticateToken, authorize(ROLES.ADMIN, ROLES.SUPERADMIN), updateInquiryStatus);
-router.delete('/:id', authenticateToken, authorize(ROLES.ADMIN, ROLES.SUPERADMIN), deleteInquiry);
+// Staff: dashboard numbers, phone / walk-in bookings, list, update, delete
+router.get('/stats', ...staff, getInquiryStats);
+router.post('/staff-booking', ...staff, createAppointmentByStaff);
+router.get('/', ...staff, getAllInquiries);
+router.put('/:id', ...staff, updateInquiryStatus);
+router.delete('/:id', ...staff, deleteInquiry);
 
 module.exports = router;
