@@ -9,6 +9,7 @@ const inquiryRoutes = require('./inquiryRoutes');
 const userRoutes = require('./userRoutes');
 const settingRoutes = require('./settingRoutes');
 const branchRoutes = require('./branchRoutes');
+const noticeRoutes = require('./noticeRoutes');
 
 // Mount routes
 router.use('/auth', authRoutes);
@@ -19,5 +20,6 @@ router.use('/inquiries', inquiryRoutes);
 router.use('/users', userRoutes);
 router.use('/settings', settingRoutes);
 router.use('/branches', branchRoutes);
+router.use('/notices', noticeRoutes);
 
 module.exports = router;
