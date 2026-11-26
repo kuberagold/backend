@@ -3,7 +3,6 @@ const GoldRate = require('../models/GoldRate');
 const memoryStore = require('../utils/memoryStore');
 const { CONVERSIONS } = require('../config/constants');
 const { successResponse, errorResponse } = require('../utils/apiResponse');
-const { loadSettings } = require('./settingController');
 
 const getLatestRates = async (req, res, next) => {
   try {
@@ -147,12 +146,13 @@ const updateDailyRate = async (req, res, next) => {
   try {
     const {
       rateDate,
-      currency = 'INR',
       rates,
       silverRatePerGram = 0,
       silverRatePerKg = 0,
-      notes
+      notes,
+      confirmLargeChange = false
     } = req.body;
+    const currency = 'NPR'; // all published rates are Nepali rupees
 
     if (!rates || !Array.isArray(rates) || rates.length === 0) {
       return errorResponse(res, {
@@ -161,18 +161,75 @@ const updateDailyRate = async (req, res, next) => {
       });
     }
 
+    // The federation publishes fine gold per tola, so the per-tola figure may be sent as entered;
+    // per-gram is derived from it (or the other way round). The buying rate is optional and
+    // defaults to the published rate. Whichever is sent, both units always agree.
+    const TOLA = CONVERSIONS.tolaToGrams;
+    const num = (v) => (v === undefined || v === null || v === '' ? null : Number(v));
+    const round2 = (v) => Math.round(v * 100) / 100;
     const formattedRates = rates.map((r) => {
-      const buyRatePerTola = r.buyRatePerTola || Math.round(r.buyRatePerGram * CONVERSIONS.tolaToGrams);
-      const sellRatePerTola = r.sellRatePerTola || Math.round(r.sellRatePerGram * CONVERSIONS.tolaToGrams);
+      const sellTola = num(r.sellRatePerTola);
+      const sellRatePerGram = num(r.sellRatePerGram) ?? (sellTola !== null ? round2(sellTola / TOLA) : NaN);
+      const sellRatePerTola = sellTola ?? Math.round(sellRatePerGram * TOLA);
+      const buyTola = num(r.buyRatePerTola);
+      const buyRatePerGram = num(r.buyRatePerGram) ?? (buyTola !== null ? round2(buyTola / TOLA) : sellRatePerGram);
+      const buyRatePerTola = buyTola ?? (num(r.buyRatePerGram) !== null ? Math.round(buyRatePerGram * TOLA) : sellRatePerTola);
       return {
-        carat: r.carat,
-        purity: r.purity || (r.carat === '24K' ? '99.9%' : r.carat === '22K' ? '91.6%' : '75.0%'),
-        buyRatePerGram: Number(r.buyRatePerGram),
-        sellRatePerGram: Number(r.sellRatePerGram),
+        carat: String(r.carat || ''),
+        purity: r.purity || (r.carat === '24K' ? '99.9%' : r.carat === '22K' ? '91.6%' : r.carat === '18K' ? '75.0%' : '58.5%'),
+        buyRatePerGram,
+        sellRatePerGram,
         buyRatePerTola,
         sellRatePerTola
       };
     });
+
+    // ---- Sanity checks: stop typing mistakes from going live on the public site ----
+    const CARAT_ORDER = ['24K', '22K', '18K', '14K'];
+    const problems = [];
+    formattedRates.forEach((r) => {
+      if (!CARAT_ORDER.includes(r.carat)) problems.push(`Unknown carat "${r.carat}"`);
+      if (!Number.isFinite(r.buyRatePerGram) || r.buyRatePerGram <= 0) problems.push(`${r.carat} buy rate must be a positive number`);
+      if (!Number.isFinite(r.sellRatePerGram) || r.sellRatePerGram <= 0) problems.push(`${r.carat} sell rate must be a positive number`);
+      if (r.buyRatePerGram > r.sellRatePerGram) problems.push(`${r.carat} buy rate (${r.buyRatePerGram}) is higher than its sell rate (${r.sellRatePerGram})`);
+    });
+    if (!formattedRates.some((r) => r.carat === '24K')) problems.push('24K (fine gold) rate is required');
+    const present = CARAT_ORDER.map((c) => formattedRates.find((r) => r.carat === c)).filter(Boolean);
+    for (let i = 1; i < present.length; i++) {
+      if (present[i].sellRatePerGram >= present[i - 1].sellRatePerGram) {
+        problems.push(`${present[i].carat} sell rate must be lower than ${present[i - 1].carat}`);
+      }
+    }
+    const silverGram = Number(silverRatePerGram);
+    if (!Number.isFinite(silverGram) || silverGram < 0) problems.push('Silver rate must be zero or a positive number');
+    if (problems.length) {
+      return errorResponse(res, { statusCode: 400, message: problems.join('. ') });
+    }
+
+    // A day-to-day move above 15% is almost always a typo: ask the admin to confirm it
+    const MAX_DAILY_MOVE = 0.15;
+    const latest = mongoose.connection.readyState === 1
+      ? await GoldRate.findOne({ isCurrent: true }).sort({ rateDate: -1 }).lean()
+      : memoryStore.goldRates[memoryStore.goldRates.length - 1];
+    if (!confirmLargeChange && latest?.rates?.length) {
+      const big = formattedRates
+        .map((r) => {
+          const old = latest.rates.find((p) => p.carat === r.carat);
+          if (!old?.sellRatePerGram) return null;
+          const move = (r.sellRatePerGram - old.sellRatePerGram) / old.sellRatePerGram;
+          return Math.abs(move) > MAX_DAILY_MOVE
+            ? `${r.carat} sell ${old.sellRatePerGram} → ${r.sellRatePerGram} (${move > 0 ? '+' : ''}${(move * 100).toFixed(1)}%)`
+            : null;
+        })
+        .filter(Boolean);
+      if (big.length) {
+        return errorResponse(res, {
+          statusCode: 409,
+          message: `These rates changed by more than 15% since the last published rate: ${big.join('; ')}. Please check for a typing mistake, or confirm to publish anyway.`,
+          errors: { code: 'LARGE_CHANGE', changes: big }
+        });
+      }
+    }
 
     const finalSilverKg = silverRatePerKg || Math.round(silverRatePerGram * 1000);
 
@@ -268,8 +325,7 @@ const calculateExchangeValue = async (req, res, next) => {
       weightInGrams,
       unit = 'tola',
       type = 'sell',
-      customRate,
-      marginPercent = 1.5
+      customRate
     } = req.body;
 
     if (!weightInGrams || weightInGrams <= 0) {
@@ -322,21 +378,18 @@ const calculateExchangeValue = async (req, res, next) => {
         else if (carat === '14K') purityRatio = 0.585;
       }
 
-      const matchedRate = latestRate.rates.find(r => r.carat === carat) || latestRate.rates[0];
-      referenceRatePerGram = matchedRate.referenceMarketRatePerGram || matchedRate.sellRatePerGram;
-      ratePerGram = customRate ? Number(customRate) : (type === 'buy' ? matchedRate.sellRatePerGram : matchedRate.buyRatePerGram);
+      // Only the fine gold (24K) rate is published. Value = fine gold content x fine gold rate,
+      // so purity is applied once (a per-carat rate here would count the purity twice).
+      const fine = latestRate.rates.find(r => r.carat === '24K') || latestRate.rates[0];
+      referenceRatePerGram = fine.referenceMarketRatePerGram || fine.sellRatePerGram;
+      ratePerGram = customRate ? Number(customRate) : (type === 'buy' ? fine.sellRatePerGram : fine.buyRatePerGram);
     }
 
     const fineMetalGrams = totalGrams * purityRatio;
     const referenceMetalValue = fineMetalGrams * (metal === 'silver' ? referenceRatePerGram : referenceRatePerGram);
+    // Estimate = fine metal weight x the published rate; nothing is deducted from it
     const baseAmount = fineMetalGrams * ratePerGram;
-    // Commission comes from SuperAdmin > System Settings unless the caller passes one
-    const settings = await loadSettings();
-    const appliedMargin = marginPercent !== undefined && marginPercent !== ''
-      ? Number(marginPercent) || 0
-      : Number(settings?.exchangeCommissionPercentage) || 0;
-    const estimatedDeductions = type === 'sell' ? (baseAmount * (appliedMargin / 100)) : 0;
-    const estimatedBuyingValue = baseAmount - estimatedDeductions;
+    const estimatedBuyingValue = baseAmount;
 
     return successResponse(res, {
       message: 'Calculation completed successfully',
@@ -352,8 +405,6 @@ const calculateExchangeValue = async (req, res, next) => {
         appliedRatePerGram: ratePerGram,
         referenceMetalValue: Number(referenceMetalValue.toFixed(2)),
         baseAmount: Number(baseAmount.toFixed(2)),
-        marginPercentage: appliedMargin,
-        estimatedDeductions: Number(estimatedDeductions.toFixed(2)),
         estimatedBuyingValue: Number(estimatedBuyingValue.toFixed(2)),
         currency: latestRate.currency || 'NPR',
         asOfDate: latestRate.rateDate

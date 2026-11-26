@@ -56,7 +56,6 @@ const seedMongo = async () => {
       address: memoryStore.settings.address,
       logoUrl: memoryStore.settings.logoUrl,
       defaultCurrency: memoryStore.settings.defaultCurrency,
-      exchangeCommissionPercentage: memoryStore.settings.exchangeCommissionPercentage,
       marqueeNotice: memoryStore.settings.marqueeNotice,
       disclaimer: memoryStore.settings.disclaimer
     });

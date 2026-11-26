@@ -26,7 +26,6 @@ const settingSchema = new mongoose.Schema(
     },
     defaultCurrency: { type: String, default: 'NPR' },
     paymentMethods: { type: String, default: 'Bank Transfer & Account Payee Cheque (No cash payments)' },
-    exchangeCommissionPercentage: { type: Number, default: 1.5, min: 0, max: 100 },
     marqueeNotice: {
       type: String,
       default: 'Live gold & silver rates updated daily. German XRF purity testing at every branch.'

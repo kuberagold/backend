@@ -100,7 +100,6 @@ const seedData = async () => {
       address: 'Dharmapath, New Road (Opposite Bishal Bazaar), Kathmandu, Nepal',
       logoUrl: '/logo.jpg',
       defaultCurrency: 'NPR',
-      exchangeCommissionPercentage: 1.5,
       marqueeNotice: '⚡ Nepal Bullion Benchmark (FENEGOSIDA): 24K Chhapawal @ Rs. 1,68,500/tola | 22K Tejabi @ Rs. 1,61,000/tola | Silver 999 @ Rs. 2,150/tola • Visit New Road Counter for Instant Cash Payout!',
       disclaimer: 'Daily gold and silver rates adhere strictly to prevailing Federation of Nepal Gold and Silver Dealers Association (FENEGOSIDA) benchmarks.'
     });

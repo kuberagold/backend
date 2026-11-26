@@ -255,7 +255,7 @@ Gold in Nepal is an essential asset for weddings, cultural festivals, and inflat
 - **18K Modern Jewelry**: NPR 133,550 per Tola (approx. NPR 11,450 per gram)
 
 #### 2. Understanding Kubera Buying Rates
-Published market rates serve as general retail benchmarks. At Kubera Gold Exchange, we offer the **highest buyback prices in Nepal**, transparently factoring in exact computerized purity and clear, disclosed processing margins.
+Published market rates serve as general retail benchmarks. At Kubera Gold Exchange, we offer the **highest buyback prices in Nepal**, based on exact computerized purity.
 
 #### 3. Factors Influencing Today's Rates
 1. **International Spot Gold**: Changes in USD per troy ounce from London and New York bullion desks.
@@ -436,15 +436,14 @@ Only this accepted net weight enters purity valuation.`,
       _id: '665000000000000000000037',
       title: 'Understanding Gold Buying Deductions: Don’t Lose Money Unknowingly',
       slug: 'understanding-gold-buying-deductions',
-      excerpt: 'An in-depth explanation of melting charges, refining margins, and why unexplained 10% to 15% deductions cost sellers thousands of rupees.',
+      excerpt: 'An in-depth explanation of melting and refining charges, and why unexplained 10% to 15% deductions cost sellers thousands of rupees.',
       content: `### The Hidden Cost of Unexplained Deductions
 
-When selling gold in traditional markets, sellers often see arbitrary deductions labeled as "Jarti" (wastage), melting losses, or unstated margins.
+When selling gold in traditional markets, sellers often see arbitrary deductions labeled as "Jarti" (wastage), melting losses, or other unexplained cuts.
 
 #### Illustrative Scenario (Assessed Gold Value NPR 300,000):
 | Deduction % | Total Deduction Amount | Customer Receives |
 | :--- | :--- | :--- |
-| **Kubera Clear Margin (1.5% - 2%)** | NPR 4,500 - NPR 6,000 | **NPR 294,000 - NPR 295,500** |
 | Typical Shop (5%) | NPR 15,000 | NPR 285,000 |
 | Heavy Deduction (8%) | NPR 24,000 | NPR 276,000 |
 | Opaque Shop (10%) | NPR 30,000 | NPR 270,000 |
@@ -652,7 +651,6 @@ Silver is graded by parts per thousand of pure elemental silver:
     socialLinks: { facebook: '', instagram: '', tiktok: '', youtube: '' },
     defaultCurrency: 'NPR',
     paymentMethods: 'Bank Transfer & Account Payee Cheque (No cash payments)',
-    exchangeCommissionPercentage: 1.5,
     marqueeNotice: 'Live gold & silver rates updated daily. German XRF purity testing at every branch.',
     disclaimer: 'Published reference market prices adhere strictly to prevailing Federation of Nepal Gold and Silver Dealers Association (FENEGOSIDA) benchmarks. Kubera buyback rates are determined via calibrated German XRF testing and direct bank transfer disbursement.'
   }

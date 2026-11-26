@@ -8,7 +8,7 @@ const { getBranches } = require('./branchController');
 const EDITABLE = [
   'siteName', 'officialSlogan', 'tagLine', 'aboutShort',
   'contactEmail', 'contactPhone', 'contactMobile', 'whatsapp', 'address', 'businessHours',
-  'logoUrl', 'defaultCurrency', 'paymentMethods', 'exchangeCommissionPercentage',
+  'logoUrl', 'defaultCurrency', 'paymentMethods',
   'marqueeNotice', 'disclaimer'
 ];
 const SOCIAL = ['facebook', 'instagram', 'tiktok', 'youtube'];
@@ -17,7 +17,7 @@ const pickSettings = (body = {}) => {
   const out = {};
   EDITABLE.forEach((k) => {
     if (body[k] === undefined) return;
-    out[k] = k === 'exchangeCommissionPercentage' ? Number(body[k]) || 0 : String(body[k]).trim();
+    out[k] = String(body[k]).trim();
   });
   if (body.socialLinks && typeof body.socialLinks === 'object') {
     SOCIAL.forEach((k) => {
