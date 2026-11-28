@@ -174,7 +174,7 @@ const memoryStore = {
     },
     {
       _id: '665000000000000000000022',
-      title: 'Instant Bank Transfer & Account Payee Cheque',
+      title: 'Bank Transfer & Account Payee Cheque',
       subtitle: '100% compliant, secure electronic bank disbursements via ConnectIPS or Cheque. Strictly transparent and legal transactions.',
       badgeText: 'Secure Bank Payments',
       imageUrl: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=1400&q=80',
